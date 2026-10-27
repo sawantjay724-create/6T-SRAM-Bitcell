@@ -1,0 +1,50 @@
+* 6T SRAM bitcell: write a 1, precharge, read it back (ngspice)
+* Measures read access time (WL rise -> 100 mV bitline split) and read disturb.
+.include spice/models/generic_180nm.lib
+
+Vdd vdd 0 1.8
+
+* Cross-coupled inverters (Q / QB) and access transistors
+MPL q  qb vdd vdd pmos W=0.28u L=0.18u
+MNL q  qb 0   0   nmos W=0.50u L=0.18u
+MPR qb q  vdd vdd pmos W=0.28u L=0.18u
+MNR qb q  0   0   nmos W=0.50u L=0.18u
+MAL bl  wl q  0 nmos W=0.28u L=0.18u
+MAR blb wl qb 0 nmos W=0.28u L=0.18u
+
+* Bitline capacitance
+Cbl  bl  0 200f
+Cblb blb 0 200f
+
+* Write drivers (write data = 1: BL high, BLB low), enabled 1-13 ns
+Vdbl  dbl  0 1.8
+Vdblb dblb 0 0
+Sw1 dbl  bl  we 0 swmod
+Sw2 dblb blb we 0 swmod
+Vwe we 0 PWL(0 0 1n 0 1.1n 1.8 13n 1.8 13.1n 0 60n 0)
+
+* Precharge bitlines to VDD, 14-24 ns
+Sp1 vdd bl  pc 0 swmod
+Sp2 vdd blb pc 0 swmod
+Vpc pc 0 PWL(0 0 14n 0 14.1n 1.8 24n 1.8 24.1n 0 60n 0)
+
+* Word line: write pulse at 2 ns, read pulse at 25 ns
+Vwl wl 0 PWL(0 0 2n 0 2.1n 1.8 12n 1.8 12.1n 0 25n 0 25.1n 1.8 45n 1.8 45.1n 0 60n 0)
+
+Bdv dv 0 V=V(bl)-V(blb)
+
+.ic v(q)=0 v(qb)=1.8 v(bl)=1.8 v(blb)=1.8
+.tran 5p 55n uic
+
+.control
+run
+meas tran q_after_write   FIND v(q)  AT=13n
+meas tran qb_after_write  FIND v(qb) AT=13n
+meas tran t_read_access   TRIG v(wl) VAL=0.9 RISE=2 TARG v(dv) VAL=0.1 RISE=1 TD=25n
+meas tran qb_read_peak    MAX  v(qb) FROM=25n TO=45n
+meas tran q_after_read    FIND v(q)  AT=50n
+meas tran qb_after_read   FIND v(qb) AT=50n
+wrdata build/sram_tran.dat v(wl) v(q) v(qb) v(bl) v(blb)
+quit
+.endc
+.end

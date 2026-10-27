@@ -1,0 +1,31 @@
+* 6T SRAM static noise margin (butterfly curve) data, ngspice
+* One half-cell VTC: inverter (input `in`, output `out`) plus its access
+* transistor tied to a bitline held at VDD. The cell is symmetric, so the
+* mirrored curve gives the second half; scripts/snm.py finds the largest
+* square that fits between the two curves (= SNM).
+.include spice/models/generic_180nm.lib
+
+* Pull-down width: the sweep script changes this to explore cell ratio
+.param wpd=0.5u
+
+Vdd vdd 0 1.8
+Vin in 0 0
+Vbl bl  0 1.8
+Vwl wl  0 0
+
+MP  out in vdd vdd pmos W=0.28u L=0.18u
+MN  out in 0   0   nmos W={wpd} L=0.18u
+MA  bl  wl out 0   nmos W=0.28u L=0.18u
+
+.control
+* Hold: word line low (access transistor off)
+alter Vwl = 0
+dc Vin 0 1.8 0.01
+wrdata build/vtc_hold.dat v(out)
+* Read: word line high, bitline precharged to VDD (worst-case disturb)
+alter Vwl = 1.8
+dc Vin 0 1.8 0.01
+wrdata build/vtc_read.dat v(out)
+quit
+.endc
+.end

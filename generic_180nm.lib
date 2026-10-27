@@ -1,0 +1,6 @@
+* Generic educational 180 nm-style MOSFET models (SPICE Level 1).
+* NOT a foundry PDK: values are typical textbook numbers so the circuits run
+* anywhere. Swap this file for a real PDK/BSIM model to get realistic numbers.
+.model nmos nmos level=1 vto=0.45 kp=250u gamma=0.4 phi=0.8 lambda=0.08 tox=4.1n cgso=3e-10 cgdo=3e-10
+.model pmos pmos level=1 vto=-0.45 kp=100u gamma=0.4 phi=0.8 lambda=0.10 tox=4.1n cgso=3e-10 cgdo=3e-10
+.model swmod sw vt=0.9 vh=0.1 ron=200 roff=1e12
